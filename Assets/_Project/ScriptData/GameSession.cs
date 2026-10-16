@@ -5,6 +5,9 @@ public class GameSession : MonoBehaviour
 {
     public const int PlayersCount = 2;
     public const int CardsPerPlayer = 2;
+    public int Winner { get; set; } = -1;          // 0 = Jogador 1, 1 = Jogador 2
+    public int TurnsPlayed { get; set; }
+    public int[] TotalDamage = new int[2];         // dano total causado por jogador
 
     public static GameSession Instance { get; private set; }
 
@@ -34,8 +37,11 @@ public class GameSession : MonoBehaviour
     public void ResetSession()
     {
         foreach (var list in picks) list.Clear();
-        foreach (var t in teams) t.Clear();              
+        foreach (var t in teams) t.Clear();
         ViewedCard = null;
+        Winner = -1;
+        TurnsPlayed = 0;
+        TotalDamage[0] = TotalDamage[1] = 0;
     }
 
 }
