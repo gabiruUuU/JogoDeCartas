@@ -130,7 +130,7 @@ public class PointDistributionController : MonoBehaviour
             case Attribute.Forca:
                 return $"Dano: {CombatRules.MinDamage(c)} a {CombatRules.MaxDamage(c)}";
             case Attribute.Velocidade:
-                return $"Iniciativa: peso {p.Velocidade}";
+                return $"Repete ataque: {Pct(CombatRules.ExtraAttackChance(p))}% (até {CombatRules.MaxAttacksPerCard}x)";
             case Attribute.Intelecto:
                 return $"Esquiva: {Pct(CombatRules.DodgeChance(p))}%";
             case Attribute.Destreza:

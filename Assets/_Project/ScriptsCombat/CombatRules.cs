@@ -13,21 +13,44 @@ public struct AttackResult
 
 public static class CombatRules
 {
-    // Valores numéricos ajustáveis (as regras em si são fixas)
+    // ---------- Valores numéricos ajustáveis (as regras em si são fixas) ----------
+
+    // Força
     public const int DamagePerStrength = 2;
-    public const float DodgePerPoint = 0.03f, DodgeCap = 0.30f;
-    public const float CritPerPoint = 0.07f, CritCap = 0.70f, CritMultiplier = 1.8f;
+
+    // Intelecto (esquiva)
+    public const float DodgePerPoint = 0.03f;
+    public const float DodgeCap = 0.30f;
+
+    // Destreza (crítico)
+    public const float CritPerPoint = 0.07f;
+    public const float CritCap = 0.70f;
+    public const float CritMultiplier = 1.8f;
+
+    // Raiva (fúria)
     public const float FuryPerPoint = 0.06f;
 
-    // ----- Prévias (tela de distribuição de pontos) -----
+    // Velocidade
+    public const int BaseTurnWeight = 1;        // peso base no sorteio de quem abre a batalha
+    public const int MaxAttacksPerCard = 3;     // máximo de ataques seguidos da mesma carta
+    public const int ExtraAttackRange = 20;     // sorteia um número de 0 a (Range - 1)
+    public const int ExtraAttackBonus = 1;      // "pontos de graça": dá chance mínima com velocidade 0
+
+    // ---------- Prévias (tela de distribuição de pontos) ----------
     public static int MinDamage(CharacterRuntime c) => c.data.minDamage + c.points.Forca * DamagePerStrength;
     public static int MaxDamage(CharacterRuntime c) => c.data.maxDamage + c.points.Forca * DamagePerStrength;
     public static float DodgeChance(AttributePoints p) => Mathf.Min(DodgeCap, p.Intelecto * DodgePerPoint);
     public static float CritChance(AttributePoints p) => Mathf.Min(CritCap, p.Destreza * CritPerPoint);
     public static float FuryBonus(AttributePoints p) => p.Raiva * FuryPerPoint;
 
-    // ----- 1. Velocidade decide quem ataca -----
-    // Pesos = soma da velocidade dos personagens vivos de cada jogador
+    // Chance de a carta atacar de novo (igual para todos: só depende da velocidade da própria carta)
+    public static float ExtraAttackChance(AttributePoints p) =>
+        Mathf.Clamp01((p.Velocidade + ExtraAttackBonus) / (float)ExtraAttackRange);
+
+    // ---------- Velocidade: quem abre a batalha ----------
+    // Peso do jogador = soma dos pesos dos personagens vivos
+    public static int TurnWeight(CharacterRuntime c) => c.points.Velocidade + BaseTurnWeight;
+
     public static bool PlayerAGoesFirst(int weightA, int weightB)
     {
         int total = weightA + weightB;
@@ -35,37 +58,36 @@ public static class CombatRules
         return Random.Range(0, total) < weightA;
     }
 
-    public static int PlayerWeight(CharacterRuntime a, CharacterRuntime b)
+    // ---------- Velocidade: ataque extra da mesma carta ----------
+    // Sorteia 0..(Range-1); se for menor que (velocidade + bônus), a carta ataca de novo
+    public static bool RollExtraAttack(CharacterRuntime attacker)
     {
-        int w = 0;
-        if (a != null && a.IsAlive) w += a.points.Velocidade;
-        if (b != null && b.IsAlive) w += b.points.Velocidade;
-        return w;
+        return Random.Range(0, ExtraAttackRange) < attacker.points.Velocidade + ExtraAttackBonus;
     }
 
-    // ----- 2 a 5. Resolução do ataque -----
+    // ---------- Resolução de um ataque ----------
     public static AttackResult Resolve(CharacterRuntime attacker, CharacterRuntime target)
     {
         var r = new AttackResult { attacker = attacker, target = target };
 
-        // 2. Intelecto do defensor tenta esquivar
+        // Intelecto do defensor tenta esquivar
         if (Random.value < DodgeChance(target.points))
         {
             r.dodged = true;
             return r;
         }
 
-        // 3. Força sorteia o dano
+        // Força sorteia o dano
         float dmg = Random.Range(MinDamage(attacker), MaxDamage(attacker) + 1);
 
-        // 4. Destreza verifica o crítico
+        // Destreza verifica o crítico
         if (Random.value < CritChance(attacker.points))
         {
             r.critical = true;
             dmg *= CritMultiplier;
         }
 
-        // 5. Raiva aplica bônus se o atacante estiver ferido (<30% de vida)
+        // Raiva aplica bônus se o atacante estiver com menos de 30% de vida
         if (attacker.IsFurious && attacker.points.Raiva > 0)
         {
             r.furyActive = true;

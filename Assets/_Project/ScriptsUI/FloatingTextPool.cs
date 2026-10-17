@@ -20,11 +20,14 @@ public class FloatingTextPool : MonoBehaviour
         t.color = color;
         t.fontSize = fontSize;
         t.alpha = 1f;
-        t.rectTransform.position = anchor.position;
-        StartCoroutine(Animate(t));
+
+        RectTransform rt = t.rectTransform;
+        rt.position = anchor.position;
+        rt.rotation = anchor.rotation;          // o texto acompanha a orientação do card
+        StartCoroutine(Animate(t, anchor.up));  // e sobe na direção "de cima" do card
     }
 
-    IEnumerator Animate(TMP_Text t)
+    IEnumerator Animate(TMP_Text t, Vector3 direction)
     {
         RectTransform rt = t.rectTransform;
         Vector3 start = rt.position;
@@ -35,7 +38,7 @@ public class FloatingTextPool : MonoBehaviour
         {
             time += Time.deltaTime;
             float k = time / duration;
-            rt.position = start + Vector3.up * (rise * k);
+            rt.position = start + direction * (rise * k);
             t.alpha = k < 0.6f ? 1f : 1f - (k - 0.6f) / 0.4f;
             yield return null;
         }

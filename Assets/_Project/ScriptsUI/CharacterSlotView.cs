@@ -8,14 +8,15 @@ public enum SlotHighlight { None, Attacker, Target }
 public class CharacterSlotView : MonoBehaviour
 {
     [SerializeField] Image frame;
+    [SerializeField] Image background;      // a Image do objeto "Bg"
     [SerializeField] Image art;
     [SerializeField] TMP_Text nameLabel;
     [SerializeField] RectTransform hpFill;
     [SerializeField] Image hpFillImage;
     [SerializeField] TMP_Text hpLabel;
-    [SerializeField] TMP_Text ownerLabel;
     [SerializeField] TMP_Text furyLabel;
-    [SerializeField] Button button;
+    [SerializeField] Button button;         // o Button do objeto "Bg"
+    [SerializeField] Button infoButton;     // o botão (i)
     [SerializeField] CanvasGroup group;
     [SerializeField] RectTransform floatAnchor;
 
@@ -28,11 +29,17 @@ public class CharacterSlotView : MonoBehaviour
     public CharacterRuntime Character { get; private set; }
     public int PlayerIndex { get; private set; }
     public RectTransform FloatAnchor => floatAnchor;
+
     public event System.Action<CharacterSlotView> Clicked;
+    public event System.Action<CharacterSlotView> InfoClicked;
 
     Color baseArtColor;
 
-    void Awake() => button.onClick.AddListener(() => Clicked?.Invoke(this));
+    void Awake()
+    {
+        button.onClick.AddListener(() => Clicked?.Invoke(this));
+        infoButton.onClick.AddListener(() => InfoClicked?.Invoke(this));
+    }
 
     void OnDestroy() => Unsubscribe();
 
@@ -54,8 +61,7 @@ public class CharacterSlotView : MonoBehaviour
         c.Defeated += OnDefeated;
 
         nameLabel.text = c.data.cardName;
-        ownerLabel.text = "J" + (playerIndex + 1);
-        ownerLabel.color = PlayerPalette.All[playerIndex];
+        background.color = PlayerPalette.CardBackground[playerIndex];
 
         art.preserveAspect = true;
         art.sprite = c.data.art;
