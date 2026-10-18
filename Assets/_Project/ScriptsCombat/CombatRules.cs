@@ -32,9 +32,12 @@ public static class CombatRules
 
     // Velocidade
     public const int BaseTurnWeight = 1;        // peso base no sorteio de quem abre a batalha
-    public const int MaxAttacksPerCard = 3;     // máximo de ataques seguidos da mesma carta
+    public const int MaxAttacksPerCard = 2;     // máximo de ataques seguidos da mesma carta
     public const int ExtraAttackRange = 20;     // sorteia um número de 0 a (Range - 1)
     public const int ExtraAttackBonus = 1;      // "pontos de graça": dá chance mínima com velocidade 0
+
+    // Equilíbrio: dano do jogador que abre a batalha, no primeiro turno dele (1 = desativado)
+    public const float FirstTurnDamageMultiplier = 0.75f;
 
     // ---------- Prévias (tela de distribuição de pontos) ----------
     public static int MinDamage(CharacterRuntime c) => c.data.minDamage + c.points.Forca * DamagePerStrength;
@@ -66,7 +69,8 @@ public static class CombatRules
     }
 
     // ---------- Resolução de um ataque ----------
-    public static AttackResult Resolve(CharacterRuntime attacker, CharacterRuntime target)
+    // damageMultiplier: usado para a penalidade do primeiro turno (1 = dano normal)
+    public static AttackResult Resolve(CharacterRuntime attacker, CharacterRuntime target, float damageMultiplier = 1f)
     {
         var r = new AttackResult { attacker = attacker, target = target };
 
@@ -93,6 +97,9 @@ public static class CombatRules
             r.furyActive = true;
             dmg *= 1f + FuryBonus(attacker.points);
         }
+
+        // Penalidade de equilíbrio (primeiro turno de quem abre a batalha)
+        dmg *= damageMultiplier;
 
         r.damage = Mathf.RoundToInt(dmg);
         target.TakeDamage(r.damage);

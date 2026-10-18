@@ -48,6 +48,10 @@ public class BattleController : MonoBehaviour
     CharacterSlotView currentAttacker;
     CharacterSlotView selectedTarget;
 
+    // Primeiro turno da batalha (quem abre causa menos dano, para equilibrar)
+    bool OpeningPenaltyActive =>
+        roundNumber == 1 && turnStep == 0 && CombatRules.FirstTurnDamageMultiplier < 1f;
+
     void Start()
     {
         attackButton.onClick.AddListener(OnAttack);
@@ -203,6 +207,13 @@ public class BattleController : MonoBehaviour
         string cardName = currentAttacker.Character.data.cardName;
         string hint = selectedTarget == null ? "Escolha o alvo" : "Toque em atacar";
 
+        string opening = "";
+        if (OpeningPenaltyActive)
+        {
+            int percent = Mathf.RoundToInt((1f - CombatRules.FirstTurnDamageMultiplier) * 100f);
+            opening = $"\n<size=80%>Primeiro turno: dano -{percent}%</size>";
+        }
+
         for (int p = 0; p < 2; p++)
         {
             if (p == turnPlayer)
@@ -210,7 +221,7 @@ public class BattleController : MonoBehaviour
                 statusLabels[p].text =
                     $"<b>SUA VEZ</b> - Rodada {roundNumber}\n" +
                     $"{cardName} ataca ({attacksByCard + 1}/{CombatRules.MaxAttacksPerCard})\n" +
-                    $"<b>{hint}</b>";
+                    $"<b>{hint}</b>{opening}";
                 statusLabels[p].color = PlayerPalette.All[p];
             }
             else
@@ -245,7 +256,8 @@ public class BattleController : MonoBehaviour
         CharacterSlotView tgt = selectedTarget;
 
         // esquiva, dano, crítico e fúria (regras em CombatRules)
-        AttackResult r = CombatRules.Resolve(atk.Character, tgt.Character);
+        float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
+        AttackResult r = CombatRules.Resolve(atk.Character, tgt.Character, multiplier);
 
         attackCount++;
         GameSession.Instance.TotalDamage[turnPlayer] += r.damage;
