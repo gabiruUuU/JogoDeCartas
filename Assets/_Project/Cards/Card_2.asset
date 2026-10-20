@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_2
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Lindo
-  art: {fileID: 0}
+  art: {fileID: -8413842757588738572, guid: ab18affb5f902ff40bdaa1bdda687fda, type: 3}
   story: Um goblin majestoso, muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -29,4 +29,4 @@ MonoBehaviour:
     muito lindo.
   health: 100
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 25

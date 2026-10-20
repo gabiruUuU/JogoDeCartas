@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_4
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: "Golbin Chor\xE3o"
-  art: {fileID: 0}
+  art: {fileID: -4081559892975129885, guid: 250729b570d9f714e8ee813121d1a05c, type: 3}
   story: "um goblin sens\xEDvel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito chor\xE3o."
-  health: 100
+  health: 50
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 25

@@ -11,6 +11,20 @@ public struct AttackResult
     public bool targetDefeated;
 }
 
+enum Tipos
+{
+    Feliz,
+    Irritado,
+    Chato,
+    Dorminhoco,
+    Feio,
+    Fedido,
+    Burro,
+    Chorao,
+    Rico,
+    Lindo
+}
+
 public static class CombatRules
 {
     // ---------- Valores numéricos ajustáveis (as regras em si são fixas) ----------

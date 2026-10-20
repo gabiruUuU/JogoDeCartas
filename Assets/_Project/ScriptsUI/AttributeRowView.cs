@@ -15,8 +15,14 @@ public class AttributeRowView : MonoBehaviour
 
     void Awake()
     {
-        minusButton.onClick.AddListener(() => Changed?.Invoke(Attribute, -1));
-        plusButton.onClick.AddListener(() => Changed?.Invoke(Attribute, +1));
+        GetOrAddHold(minusButton).Tick += () => Changed?.Invoke(Attribute, -1);
+        GetOrAddHold(plusButton).Tick += () => Changed?.Invoke(Attribute, +1);
+    }
+
+    static HoldRepeatButton GetOrAddHold(Button b)
+    {
+        var hold = b.GetComponent<HoldRepeatButton>();
+        return hold != null ? hold : b.gameObject.AddComponent<HoldRepeatButton>();
     }
 
     public void Setup(Attribute attribute, string displayName)

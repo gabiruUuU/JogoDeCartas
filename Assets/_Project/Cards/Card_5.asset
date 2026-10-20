@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_5
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Irritado
-  art: {fileID: 0}
+  art: {fileID: -88541066748262059, guid: 18e3de6ea2458a345ab7103398e94db4, type: 3}
   story: Um goblin temperamental, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito irritado.
-  health: 100
-  minDamage: 10
-  maxDamage: 20
+  health: 80
+  minDamage: 15
+  maxDamage: 40

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_3
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Burro
-  art: {fileID: 0}
+  art: {fileID: -7638004693354770092, guid: be6c848587bf07a4080482bf0d59b525, type: 3}
   story: "um goblin imbec\xEDl, muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito burro."
-  health: 100
-  minDamage: 10
-  maxDamage: 20
+  health: 150
+  minDamage: 15
+  maxDamage: 35

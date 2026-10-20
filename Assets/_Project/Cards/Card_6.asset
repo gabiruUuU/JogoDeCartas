@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_6
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Chato
-  art: {fileID: 0}
+  art: {fileID: -5222889875473699838, guid: 910d527ce2ece8041a862d7c4042c98e, type: 3}
   story: "Um goblin insuport\xE1vel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito chato."
-  health: 100
+  health: 200
   minDamage: 10
   maxDamage: 20

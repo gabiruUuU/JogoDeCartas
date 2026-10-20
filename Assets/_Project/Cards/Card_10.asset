@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_10
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Rico
-  art: {fileID: 0}
+  art: {fileID: -7176733650453162848, guid: 802074553a841c7428c9dc187535d5f9, type: 3}
   story: Um goblin privilegiado. muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito rico.
-  health: 100
+  health: 80
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 30

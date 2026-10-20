@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_1
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Feio
-  art: {fileID: 0}
+  art: {fileID: -3991732654992645752, guid: 7ad6b83626692ea47ac908d8b3d4a046, type: 3}
   story: Um goblin horrendo, muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito feio.
-  health: 100
+  health: 50
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 30

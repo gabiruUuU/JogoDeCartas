@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_8
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Feliz
-  art: {fileID: 0}
+  art: {fileID: -8485546624349860903, guid: 61753e6c09e40a544908c3eb298c0aeb, type: 3}
   story: Um goblin cativante, muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -29,4 +29,4 @@ MonoBehaviour:
     muito feliz.
   health: 100
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 25

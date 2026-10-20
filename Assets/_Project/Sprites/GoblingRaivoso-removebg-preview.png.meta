@@ -1,0 +1,251 @@
+fileFormatVersion: 2
+guid: 18e3de6ea2458a345ab7103398e94db4
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -3032609922270019329
+    second: GoblingRaivoso-removebg-preview_0
+  - first:
+      213: -88541066748262059
+    second: GoblingRaivoso-removebg-preview_1
+  - first:
+      213: 7224739854771442556
+    second: GoblingRaivoso-removebg-preview_2
+  - first:
+      213: -1379798276027791025
+    second: GoblingRaivoso-removebg-preview_3
+  - first:
+      213: -9139104341934397494
+    second: GoblingRaivoso-removebg-preview_4
+  - first:
+      213: -6312028074888977793
+    second: GoblingRaivoso-removebg-preview_5
+  - first:
+      213: -2363676776338140691
+    second: GoblingRaivoso-removebg-preview_6
+  - first:
+      213: -325363918561357802
+    second: GoblingRaivoso-removebg-preview_7
+  - first:
+      213: -2387175574043744348
+    second: GoblingRaivoso-removebg-preview_8
+  - first:
+      213: -3137273084286346132
+    second: GoblingRaivoso-removebg-preview_9
+  - first:
+      213: 3299696872609020100
+    second: GoblingRaivoso-removebg-preview_10
+  - first:
+      213: -5372743317243076133
+    second: GoblingRaivoso-removebg-preview_11
+  - first:
+      213: -5307073586105557254
+    second: GoblingRaivoso-removebg-preview_12
+  - first:
+      213: -3333051467010497577
+    second: GoblingRaivoso-removebg-preview_13
+  - first:
+      213: 3366865237956355128
+    second: GoblingRaivoso-removebg-preview_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WindowsStoreApps
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: GoblingRaivoso-removebg-preview_1
+      rect:
+        serializedVersion: 2
+        x: 180
+        y: 19
+        width: 325
+        height: 324
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5598f607e5075cef0800000000000000
+      internalID: -88541066748262059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 21759d8cc9d1f7b48ac00c21a36d5777
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      GoblingRaivoso-removebg-preview_0: -3032609922270019329
+      GoblingRaivoso-removebg-preview_1: -88541066748262059
+      GoblingRaivoso-removebg-preview_10: 3299696872609020100
+      GoblingRaivoso-removebg-preview_11: -5372743317243076133
+      GoblingRaivoso-removebg-preview_12: -5307073586105557254
+      GoblingRaivoso-removebg-preview_13: -3333051467010497577
+      GoblingRaivoso-removebg-preview_14: 3366865237956355128
+      GoblingRaivoso-removebg-preview_2: 7224739854771442556
+      GoblingRaivoso-removebg-preview_3: -1379798276027791025
+      GoblingRaivoso-removebg-preview_4: -9139104341934397494
+      GoblingRaivoso-removebg-preview_5: -6312028074888977793
+      GoblingRaivoso-removebg-preview_6: -2363676776338140691
+      GoblingRaivoso-removebg-preview_7: -325363918561357802
+      GoblingRaivoso-removebg-preview_8: -2387175574043744348
+      GoblingRaivoso-removebg-preview_9: -3137273084286346132
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

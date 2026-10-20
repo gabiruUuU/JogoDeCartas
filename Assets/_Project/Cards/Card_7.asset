@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_7
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Fedido
-  art: {fileID: 0}
+  art: {fileID: 8863503682656203576, guid: 2e0f223e45ce70647a948b8943e6c54f, type: 3}
   story: "Um goblin intrag\xE1vel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
@@ -27,6 +27,6 @@ MonoBehaviour:
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito fedido. "
-  health: 100
+  health: 150
   minDamage: 10
-  maxDamage: 20
+  maxDamage: 25
