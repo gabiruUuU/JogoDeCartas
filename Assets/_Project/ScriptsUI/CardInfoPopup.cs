@@ -51,6 +51,16 @@ public class CardInfoPopup : MonoBehaviour
         AppendStat(sb, "Raiva", p.Raiva,
             $"+{Pct(CombatRules.FuryBonus(p))}% de dano com vida abaixo de 30%");
 
+        if (c.data.ability != AbilityType.None)
+        {
+            sb.Append("<b>Habilidade: ").Append(c.data.AbilityName).Append("</b>\n");
+            sb.Append("<size=80%><color=#B8C0D0>").Append(c.data.AbilityDescription).Append("</color></size>\n");
+        }
+
+        string status = c.StatusText;
+        if (!string.IsNullOrEmpty(status))
+            sb.Append("<color=#FFE066><b>").Append(status).Append("</b></color>\n");
+
         if (c.IsFurious && p.Raiva > 0)
             sb.Append("<color=#FF6A4D><b>FÚRIA ATIVA!</b></color>");
 

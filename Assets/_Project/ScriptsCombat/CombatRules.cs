@@ -5,24 +5,14 @@ public struct AttackResult
     public CharacterRuntime attacker;
     public CharacterRuntime target;
     public bool dodged;
+    public bool missed;       // Burro errou o próprio ataque
     public bool critical;
     public bool furyActive;
+    public bool doubled;      // Irritado: dano dobrado
+    public bool shielded;     // alvo com escudo (Fedido)
+    public int released;      // dano acumulado liberado neste ataque (Chato)
     public int damage;
     public bool targetDefeated;
-}
-
-enum Tipos
-{
-    Feliz,
-    Irritado,
-    Chato,
-    Dorminhoco,
-    Feio,
-    Fedido,
-    Burro,
-    Chorao,
-    Rico,
-    Lindo
 }
 
 public static class CombatRules
@@ -46,7 +36,7 @@ public static class CombatRules
 
     // Velocidade
     public const int BaseTurnWeight = 1;        // peso base no sorteio de quem abre a batalha
-    public const int MaxAttacksPerCard = 2;     // máximo de ataques seguidos da mesma carta
+    public const int MaxAttacksPerCard = 3;     // máximo de ataques seguidos da mesma carta
     public const int ExtraAttackRange = 20;     // sorteia um número de 0 a (Range - 1)
     public const int ExtraAttackBonus = 1;      // "pontos de graça": dá chance mínima com velocidade 0
 
@@ -60,12 +50,22 @@ public static class CombatRules
     public static float CritChance(AttributePoints p) => Mathf.Min(CritCap, p.Destreza * CritPerPoint);
     public static float FuryBonus(AttributePoints p) => p.Raiva * FuryPerPoint;
 
-    // Chance de a carta atacar de novo (igual para todos: só depende da velocidade da própria carta)
+    // Chance de a carta atacar de novo (só depende da velocidade da própria carta)
     public static float ExtraAttackChance(AttributePoints p) =>
         Mathf.Clamp01((p.Velocidade + ExtraAttackBonus) / (float)ExtraAttackRange);
 
+    // Sorteio do dano base (usado no ataque e no "Acumular" do Chato)
+    public static int RollBaseDamage(CharacterRuntime c) =>
+        Random.Range(MinDamage(c), MaxDamage(c) + 1);
+
+    // Lindo: cura maior quanto menor a vida (entre abilityAmountMin e abilityAmount da vida máxima)
+    public static int SelfHealAmount(CharacterRuntime c)
+    {
+        float percent = Mathf.Lerp(c.data.abilityAmount, c.data.abilityAmountMin, c.HealthPercent);
+        return Mathf.Max(1, Mathf.RoundToInt(c.MaxHealth * percent));
+    }
+
     // ---------- Velocidade: quem abre a batalha ----------
-    // Peso do jogador = soma dos pesos dos personagens vivos
     public static int TurnWeight(CharacterRuntime c) => c.points.Velocidade + BaseTurnWeight;
 
     public static bool PlayerAGoesFirst(int weightA, int weightB)
@@ -76,7 +76,6 @@ public static class CombatRules
     }
 
     // ---------- Velocidade: ataque extra da mesma carta ----------
-    // Sorteia 0..(Range-1); se for menor que (velocidade + bônus), a carta ataca de novo
     public static bool RollExtraAttack(CharacterRuntime attacker)
     {
         return Random.Range(0, ExtraAttackRange) < attacker.points.Velocidade + ExtraAttackBonus;
@@ -88,6 +87,17 @@ public static class CombatRules
     {
         var r = new AttackResult { attacker = attacker, target = target };
 
+        // Chato: o dano acumulado é liberado neste ataque, aconteça o que acontecer
+        int banked = attacker.ConsumeAccumulated();
+        r.released = banked;
+
+        // Burro: chance de errar o próprio ataque
+        if (attacker.data.ability == AbilityType.SelfMiss && Random.value < attacker.data.abilityChance)
+        {
+            r.missed = true;
+            return r;
+        }
+
         // Intelecto do defensor tenta esquivar
         if (Random.value < DodgeChance(target.points))
         {
@@ -95,8 +105,8 @@ public static class CombatRules
             return r;
         }
 
-        // Força sorteia o dano
-        float dmg = Random.Range(MinDamage(attacker), MaxDamage(attacker) + 1);
+        // Força sorteia o dano (mais o acumulado, se houver)
+        float dmg = RollBaseDamage(attacker) + banked;
 
         // Destreza verifica o crítico
         if (Random.value < CritChance(attacker.points))
@@ -112,10 +122,26 @@ public static class CombatRules
             dmg *= 1f + FuryBonus(attacker.points);
         }
 
+        // Irritado: em modo raiva, chance de dano dobrado
+        if (attacker.data.ability == AbilityType.FuryDoubleDamage
+            && attacker.IsFurious
+            && Random.value < attacker.data.abilityChance)
+        {
+            r.doubled = true;
+            dmg *= 2f;
+        }
+
         // Penalidade de equilíbrio (primeiro turno de quem abre a batalha)
         dmg *= damageMultiplier;
 
-        r.damage = Mathf.RoundToInt(dmg);
+        // Fedido: escudo reduz o dano recebido
+        if (target.data.ability == AbilityType.Shield)
+        {
+            r.shielded = true;
+            dmg *= 1f - target.data.abilityAmount;
+        }
+
+        r.damage = Mathf.Max(1, Mathf.RoundToInt(dmg));
         target.TakeDamage(r.damage);
         r.targetDefeated = !target.IsAlive;
         return r;

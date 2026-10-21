@@ -30,3 +30,8 @@ MonoBehaviour:
   health: 50
   minDamage: 10
   maxDamage: 25
+  ability: 6
+  abilityChance: 0.25
+  abilityAmount: 0
+  abilityAmountMin: 0
+  abilityTurns: 0

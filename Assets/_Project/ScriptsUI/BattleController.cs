@@ -29,6 +29,11 @@ public class BattleController : MonoBehaviour
     static readonly Color DodgeColor = new Color(0.45f, 0.85f, 1f);
     static readonly Color FuryColor = new Color(1f, 0.35f, 0.25f);
     static readonly Color ExtraColor = new Color(1f, 0.92f, 0.40f);
+    static readonly Color HealColor = new Color(0.40f, 1f, 0.55f);
+    static readonly Color SleepColor = new Color(0.70f, 0.80f, 1f);
+    static readonly Color SadColor = new Color(0.60f, 0.70f, 1f);
+    static readonly Color MissColor = new Color(0.80f, 0.80f, 0.80f);
+    static readonly Color DoubleColor = new Color(1f, 0.60f, 0.10f);
     static readonly Color PanelIdle = new Color(1f, 1f, 1f, 0.06f);
     static readonly Color StatusIdle = new Color(1f, 1f, 1f, 0.55f);
     const int MaxLogLines = 3;
@@ -41,9 +46,10 @@ public class BattleController : MonoBehaviour
     int attackCount;        // total de ataques = "turnos jogados" do Resultado
     int turnPlayer;         // jogador da vez
     int turnStep;           // 0 = primeiro jogador da rodada, 1 = segundo
-    int cardIndex;          // carta que está atacando (0 ou 1)
-    int attacksByCard;      // ataques já feitos pela carta atual
+    int cardIndex;          // carta que está agindo (0 ou 1)
+    int attacksByCard;      // tentativas de ataque já feitas pela carta atual
     bool inputLocked;
+    bool buyMode;           // Rico: escolhendo a carta a comprar
 
     CharacterSlotView currentAttacker;
     CharacterSlotView selectedTarget;
@@ -74,7 +80,11 @@ public class BattleController : MonoBehaviour
     {
         StopAllCoroutines();
         infoPopup.Hide();
+        inputLocked = false;
+        buyMode = false;
+
         var session = GameSession.Instance;
+        ApplySadness(session);
 
         for (int p = 0; p < GameSession.PlayersCount; p++)
         {
@@ -98,8 +108,21 @@ public class BattleController : MonoBehaviour
             CharacterSlotView s = Instantiate(slotPrefab, teamParents[player], false);
             s.Clicked += OnSlotClicked;
             s.InfoClicked += OnSlotInfo;
+            s.AbilityClicked += OnAbilityClicked;
             slots[player].Add(s);
         }
+    }
+
+    // Chorão: as cartas do time inimigo ficam tristes durante toda a batalha
+    static void ApplySadness(GameSession session)
+    {
+        for (int p = 0; p < GameSession.PlayersCount; p++)
+            foreach (var c in session.teams[p])
+            {
+                if (c.data.ability != AbilityType.Sadden) continue;
+                foreach (var enemy in session.teams[1 - p])
+                    enemy.SadSkipChance = Mathf.Max(enemy.SadSkipChance, c.data.abilityChance);
+            }
     }
 
     // Sorteio do PDF: peso = soma das velocidades dos personagens vivos
@@ -144,8 +167,7 @@ public class BattleController : MonoBehaviour
             return;
         }
 
-        attacksByCard = 0;
-        BeginAttackPrompt();
+        BeginCardAction();
     }
 
     void EndPlayerTurn()
@@ -161,17 +183,130 @@ public class BattleController : MonoBehaviour
         }
     }
 
-    // Prepara um ataque da carta atual: atacante fixo, jogador só escolhe o alvo
+    // Efeitos que acontecem uma vez, no começo da ação de cada carta
+    void BeginCardAction()
+    {
+        attacksByCard = 0;
+        buyMode = false;
+
+        CharacterSlotView slot = slots[turnPlayer][cardIndex];
+        CharacterRuntime c = slot.Character;
+        string cardName = c.data.cardName;
+
+        currentAttacker = slot;
+        selectedTarget = null;
+
+        if (c.AbilityCooldownLeft > 0) c.AbilityCooldownLeft--;
+
+        // Dorminhoco: dormindo, perde a ação; ao acordar, recupera toda a vida
+        if (c.IsAsleep)
+        {
+            c.SleepTurnsLeft--;
+            if (c.SleepTurnsLeft <= 0)
+            {
+                int healed = c.HealToFull();
+                floatingTexts.Show(slot.FloatAnchor, $"Acordou! +{healed}", HealColor, 60);
+                PushLog($"{cardName} acordou e recuperou toda a vida!");
+            }
+            else
+            {
+                floatingTexts.Show(slot.FloatAnchor, "Zzz...", SleepColor, 64);
+                PushLog($"{cardName} continua dormindo.");
+            }
+            c.NotifyStatusChanged();
+            LockAndAdvance(1.1f);
+            return;
+        }
+
+        // Rico: carta comprada perde esta ação
+        if (c.SkipNextAction)
+        {
+            c.SkipNextAction = false;
+            c.NotifyStatusChanged();
+            floatingTexts.Show(slot.FloatAnchor, "Perdeu a vez", SleepColor, 56);
+            PushLog($"{cardName} foi comprado e perdeu a vez.");
+            LockAndAdvance(1.1f);
+            return;
+        }
+
+        // Lindo: se cura no começo da vez (mais quanto menor a vida)
+        if (c.data.ability == AbilityType.SelfHeal)
+        {
+            int healed = c.Heal(CombatRules.SelfHealAmount(c));
+            if (healed > 0)
+            {
+                floatingTexts.Show(slot.FloatAnchor, $"+{healed}", HealColor, 72);
+                PushLog($"{cardName} se curou em {healed}.");
+            }
+        }
+
+        BeginAttackPrompt();
+    }
+
+    void LockAndAdvance(float delay)
+    {
+        inputLocked = true;
+        RefreshTurnUI();
+        StartCoroutine(AdvanceAfter(delay));
+    }
+
+    IEnumerator AdvanceAfter(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        AdvanceToNextCard();
+    }
+
+    // Prepara uma tentativa de ataque da carta atual
     void BeginAttackPrompt()
     {
         inputLocked = false;
+        buyMode = false;
         currentAttacker = slots[turnPlayer][cardIndex];
         selectedTarget = null;
+
+        CharacterRuntime c = currentAttacker.Character;
+
+        // Chorão: carta triste tem chance de não atacar nesta tentativa
+        if (c.IsSad && Random.value < c.SadSkipChance)
+        {
+            floatingTexts.Show(currentAttacker.FloatAnchor, "Triste...", SadColor, 60);
+            PushLog($"{c.data.cardName} está triste e não atacou.");
+            inputLocked = true;
+            RefreshTurnUI();
+            StartCoroutine(AfterFailedAttempt(currentAttacker));
+            return;
+        }
 
         var enemies = AliveSlots(1 - turnPlayer);
         if (enemies.Count == 1) selectedTarget = enemies[0];
 
         RefreshTurnUI();
+    }
+
+    IEnumerator AfterFailedAttempt(CharacterSlotView atk)
+    {
+        yield return new WaitForSeconds(0.9f);
+        ContinueAfterAttempt(atk, true);
+    }
+
+    // Depois de cada tentativa: sorteia ataque extra (velocidade) ou passa para a próxima carta
+    void ContinueAfterAttempt(CharacterSlotView atk, bool allowExtra)
+    {
+        attacksByCard++;
+        bool again = allowExtra
+                     && attacksByCard < CombatRules.MaxAttacksPerCard
+                     && CombatRules.RollExtraAttack(atk.Character);
+
+        if (again)
+        {
+            floatingTexts.Show(atk.FloatAnchor, "Ataca de novo!", ExtraColor, 56);
+            PushLog($"{atk.Character.data.cardName} é rápido e ataca de novo!");
+            BeginAttackPrompt();                  // mesma carta, novo alvo
+        }
+        else
+        {
+            AdvanceToNextCard();                  // próxima carta (ou próximo jogador)
+        }
     }
 
     List<CharacterSlotView> AliveSlots(int player)
@@ -187,10 +322,12 @@ public class BattleController : MonoBehaviour
         return false;
     }
 
+    // ---------- Toques ----------
     void OnSlotClicked(CharacterSlotView slot)
     {
         if (inputLocked || !slot.Character.IsAlive) return;
-        if (slot.PlayerIndex == turnPlayer) return;     // o atacante é automático
+        if (slot.PlayerIndex == turnPlayer) return;          // o atacante é automático
+        if (buyMode && !IsValidBuyTarget(slot)) return;
 
         selectedTarget = slot;
         RefreshTurnUI();
@@ -202,46 +339,133 @@ public class BattleController : MonoBehaviour
         infoPopup.Show(slot.Character, slot.PlayerIndex);
     }
 
-    void RefreshTurnUI()
+    void OnAbilityClicked(CharacterSlotView slot)
     {
-        string cardName = currentAttacker.Character.data.cardName;
-        string hint = selectedTarget == null ? "Escolha o alvo" : "Toque em atacar";
+        if (inputLocked || slot != currentAttacker) return;
 
-        string opening = "";
-        if (OpeningPenaltyActive)
+        switch (slot.Character.data.ability)
         {
-            int percent = Mathf.RoundToInt((1f - CombatRules.FirstTurnDamageMultiplier) * 100f);
-            opening = $"\n<size=80%>Primeiro turno: dano -{percent}%</size>";
+            case AbilityType.Accumulate: DoAccumulate(); break;
+            case AbilityType.Sleep: DoSleep(); break;
+            case AbilityType.Buy: ToggleBuyMode(); break;
+        }
+    }
+
+    // ---------- Habilidades ativas ----------
+    bool CanUseAbility(CharacterSlotView s)
+    {
+        CharacterRuntime c = s.Character;
+        switch (c.data.ability)
+        {
+            case AbilityType.Accumulate: return c.AccumulatedStacks < Mathf.Max(1, c.data.abilityTurns);
+            case AbilityType.Sleep: return true;
+            case AbilityType.Buy: return c.AbilityCooldownLeft <= 0 && HasBuyTarget();
+            default: return false;
+        }
+    }
+
+    // Rico só pode comprar uma carta acordada que tenha outra carta viva no próprio time para ser atacada
+    bool IsValidBuyTarget(CharacterSlotView s)
+    {
+        if (s.PlayerIndex == turnPlayer) return false;
+        CharacterRuntime c = s.Character;
+        if (!c.IsAlive || c.IsAsleep) return false;
+
+        foreach (var other in slots[s.PlayerIndex])
+            if (other != s && other.Character.IsAlive) return true;
+        return false;
+    }
+
+    bool HasBuyTarget()
+    {
+        foreach (var s in slots[1 - turnPlayer])
+            if (IsValidBuyTarget(s)) return true;
+        return false;
+    }
+
+    void ToggleBuyMode()
+    {
+        if (!buyMode && !CanUseAbility(currentAttacker)) return;
+
+        buyMode = !buyMode;
+        selectedTarget = null;
+
+        if (buyMode)
+        {
+            CharacterSlotView only = null;
+            int count = 0;
+            foreach (var s in slots[1 - turnPlayer])
+                if (IsValidBuyTarget(s)) { only = s; count++; }
+            if (count == 1) selectedTarget = only;
+        }
+        else
+        {
+            var enemies = AliveSlots(1 - turnPlayer);
+            if (enemies.Count == 1) selectedTarget = enemies[0];
         }
 
-        for (int p = 0; p < 2; p++)
-        {
-            if (p == turnPlayer)
-            {
-                statusLabels[p].text =
-                    $"<b>SUA VEZ</b> - Rodada {roundNumber}\n" +
-                    $"{cardName} ataca ({attacksByCard + 1}/{CombatRules.MaxAttacksPerCard})\n" +
-                    $"<b>{hint}</b>{opening}";
-                statusLabels[p].color = PlayerPalette.All[p];
-            }
-            else
-            {
-                statusLabels[p].text = $"Vez do adversário\nRodada {roundNumber}";
-                statusLabels[p].color = StatusIdle;
-            }
+        RefreshTurnUI();
+    }
 
-            Color c = PlayerPalette.All[p];
-            c.a = 0.45f;
-            teamPanels[p].color = p == turnPlayer ? c : PanelIdle;
-        }
+    // Chato: em vez de atacar, guarda um sorteio de dano para soltar depois
+    void DoAccumulate()
+    {
+        CharacterSlotView slot = currentAttacker;
+        CharacterRuntime c = slot.Character;
+        if (!CanUseAbility(slot)) return;
 
-        foreach (var list in slots)
-            foreach (var s in list)
-                s.SetHighlight(s == currentAttacker ? SlotHighlight.Attacker
-                             : s == selectedTarget ? SlotHighlight.Target
-                             : SlotHighlight.None);
+        inputLocked = true;
+        int roll = CombatRules.RollBaseDamage(c);
+        c.Accumulate(roll, Mathf.Max(1, c.data.abilityTurns));
 
-        attackButton.interactable = selectedTarget != null && !inputLocked;
+        floatingTexts.Show(slot.FloatAnchor, $"Acumulou +{roll}", ExtraColor, 56);
+        PushLog($"{c.data.cardName} não atacou e acumulou dano (total {c.AccumulatedDamage}).");
+        RefreshTurnUI();
+        StartCoroutine(AdvanceAfter(1.0f));
+    }
+
+    // Dorminhoco: dorme (esta ação conta como a 1ª rodada) e acorda curado
+    void DoSleep()
+    {
+        CharacterSlotView slot = currentAttacker;
+        CharacterRuntime c = slot.Character;
+
+        inputLocked = true;
+        c.SleepTurnsLeft = Mathf.Max(1, c.data.abilityTurns - 1);
+        c.NotifyStatusChanged();
+
+        floatingTexts.Show(slot.FloatAnchor, "Zzz...", SleepColor, 64);
+        PushLog($"{c.data.cardName} foi dormir e vai acordar curado.");
+        RefreshTurnUI();
+        StartCoroutine(AdvanceAfter(1.0f));
+    }
+
+    // Rico: compra a carta escolhida, que ataca uma carta do próprio time e perde a próxima ação
+    void ExecuteBuy()
+    {
+        CharacterSlotView rico = currentAttacker;
+        CharacterSlotView bought = selectedTarget;
+
+        CharacterSlotView victim = null;
+        foreach (var s in slots[bought.PlayerIndex])
+            if (s != bought && s.Character.IsAlive) { victim = s; break; }
+        if (victim == null) return;
+
+        inputLocked = true;
+        rico.Character.AbilityCooldownLeft = Mathf.Max(0, rico.Character.data.abilityTurns);
+        bought.Character.SkipNextAction = true;
+        bought.Character.NotifyStatusChanged();
+
+        floatingTexts.Show(bought.FloatAnchor, "Comprado!", ExtraColor, 64);
+        PushLog($"{rico.Character.data.cardName} comprou {bought.Character.data.cardName}, " +
+                $"que ataca {victim.Character.data.cardName}!");
+
+        float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
+        AttackResult r = CombatRules.Resolve(bought.Character, victim.Character, multiplier);
+        RegisterAttack(r, bought, victim);
+
+        RefreshTurnUI();
+        StartCoroutine(AfterAttack(r, rico, false));
     }
 
     // ---------- Ataque ----------
@@ -249,34 +473,57 @@ public class BattleController : MonoBehaviour
     {
         if (inputLocked || currentAttacker == null || selectedTarget == null) return;
 
-        inputLocked = true;
-        attackButton.interactable = false;
+        if (buyMode)
+        {
+            if (IsValidBuyTarget(selectedTarget)) ExecuteBuy();
+            return;
+        }
 
+        inputLocked = true;
         CharacterSlotView atk = currentAttacker;
         CharacterSlotView tgt = selectedTarget;
 
-        // esquiva, dano, crítico e fúria (regras em CombatRules)
         float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
         AttackResult r = CombatRules.Resolve(atk.Character, tgt.Character, multiplier);
 
+        RegisterAttack(r, atk, tgt);
+        RefreshTurnUI();
+        StartCoroutine(AfterAttack(r, atk, true));
+    }
+
+    void RegisterAttack(AttackResult r, CharacterSlotView atk, CharacterSlotView tgt)
+    {
         attackCount++;
         GameSession.Instance.TotalDamage[turnPlayer] += r.damage;
         ShowFeedback(r, atk, tgt);
         AddLog(r);
-        StartCoroutine(AfterAttack(r, atk));
     }
 
     void ShowFeedback(AttackResult r, CharacterSlotView atk, CharacterSlotView tgt)
     {
-        if (r.furyActive)
+        if (r.released > 0)
+            floatingTexts.Show(atk.FloatAnchor, $"Liberou {r.released}!", ExtraColor, 54);
+        else if (r.furyActive)
             floatingTexts.Show(atk.FloatAnchor, "Fúria!", FuryColor, 54);
 
+        if (r.missed)
+        {
+            floatingTexts.Show(atk.FloatAnchor, "Errou!", MissColor, 72);
+            return;
+        }
         if (r.dodged)
+        {
             floatingTexts.Show(tgt.FloatAnchor, "Esquivou!", DodgeColor, 64);
+            return;
+        }
+
+        string shield = r.shielded ? "<size=50%> escudo</size>" : "";
+        if (r.doubled)
+            floatingTexts.Show(tgt.FloatAnchor, $"-{r.damage} DOBRO!{shield}", DoubleColor, 100);
         else if (r.critical)
-            floatingTexts.Show(tgt.FloatAnchor, $"-{r.damage}!", CritColor, 120);
+            floatingTexts.Show(tgt.FloatAnchor, $"-{r.damage}!{shield}", CritColor, 120);
         else
-            floatingTexts.Show(tgt.FloatAnchor, $"-{r.damage}", HitColor, 72);
+            floatingTexts.Show(tgt.FloatAnchor, $"-{r.damage}{shield}", HitColor, 72);
     }
 
     void AddLog(AttackResult r)
@@ -285,10 +532,14 @@ public class BattleController : MonoBehaviour
         string t = r.target.data.cardName;
 
         string line;
-        if (r.dodged) line = $"{a} atacou, mas {t} esquivou!";
+        if (r.missed) line = $"{a} errou o próprio ataque!";
+        else if (r.dodged) line = $"{a} atacou, mas {t} esquivou!";
+        else if (r.doubled) line = $"{a} deu DANO DOBRADO em {t}: {r.damage}!";
         else if (r.critical) line = $"{a} deu CRÍTICO em {t}: {r.damage} de dano!";
         else line = $"{a} causou {r.damage} de dano em {t}.";
 
+        if (r.released > 0 && !r.missed) line += $" (inclui {r.released} acumulado)";
+        if (r.shielded && !r.missed && !r.dodged) line += " (escudo)";
         if (r.furyActive) line += " (fúria)";
         if (r.targetDefeated) line += $" {t} foi derrotado!";
         PushLog(line);
@@ -317,7 +568,7 @@ public class BattleController : MonoBehaviour
             logLabels[p].text = string.Join("\n", logs[p]);
     }
 
-    IEnumerator AfterAttack(AttackResult r, CharacterSlotView atk)
+    IEnumerator AfterAttack(AttackResult r, CharacterSlotView atk, bool allowExtra)
     {
         yield return new WaitForSeconds(r.targetDefeated ? 1.1f : 0.9f);
 
@@ -333,19 +584,63 @@ public class BattleController : MonoBehaviour
             yield break;
         }
 
-        attacksByCard++;
-        bool again = attacksByCard < CombatRules.MaxAttacksPerCard
-                     && CombatRules.RollExtraAttack(atk.Character);
+        ContinueAfterAttempt(atk, allowExtra);
+    }
 
-        if (again)
+    // ---------- Interface ----------
+    void RefreshTurnUI()
+    {
+        string cardName = currentAttacker.Character.data.cardName;
+        string hint = inputLocked ? "Aguarde..."
+                    : buyMode ? "Escolha a carta para comprar"
+                    : selectedTarget == null ? "Escolha o alvo"
+                    : "Toque em atacar";
+
+        string opening = "";
+        if (OpeningPenaltyActive)
         {
-            floatingTexts.Show(atk.FloatAnchor, "Ataca de novo!", ExtraColor, 56);
-            PushLog($"{atk.Character.data.cardName} é rápido e ataca de novo!");
-            BeginAttackPrompt();                  // mesma carta, novo alvo
+            int percent = Mathf.RoundToInt((1f - CombatRules.FirstTurnDamageMultiplier) * 100f);
+            opening = $"\n<size=80%>Primeiro turno: dano -{percent}%</size>";
         }
-        else
+
+        for (int p = 0; p < 2; p++)
         {
-            AdvanceToNextCard();                  // próxima carta (ou próximo jogador)
+            if (p == turnPlayer)
+            {
+                statusLabels[p].text =
+                    $"<b>SUA VEZ</b> - Rodada {roundNumber}\n" +
+                    $"{cardName} ({attacksByCard + 1}/{CombatRules.MaxAttacksPerCard})\n" +
+                    $"<b>{hint}</b>{opening}";
+                statusLabels[p].color = PlayerPalette.All[p];
+            }
+            else
+            {
+                statusLabels[p].text = $"Vez do adversário\nRodada {roundNumber}";
+                statusLabels[p].color = StatusIdle;
+            }
+
+            Color c = PlayerPalette.All[p];
+            c.a = 0.45f;
+            teamPanels[p].color = p == turnPlayer ? c : PanelIdle;
         }
+
+        foreach (var list in slots)
+            foreach (var s in list)
+            {
+                s.SetHighlight(s == currentAttacker ? SlotHighlight.Attacker
+                             : s == selectedTarget ? SlotHighlight.Target
+                             : SlotHighlight.None);
+
+                bool showAbility = s == currentAttacker
+                                   && !inputLocked
+                                   && s.Character.IsAlive
+                                   && s.Character.data.HasActiveAbility;
+                s.SetAbilityButton(showAbility,
+                                   buyMode ? "Cancelar" : s.Character.data.AbilityName,
+                                   buyMode || CanUseAbility(s));
+            }
+
+        bool targetOk = selectedTarget != null && (!buyMode || IsValidBuyTarget(selectedTarget));
+        attackButton.interactable = targetOk && !inputLocked;
     }
 }

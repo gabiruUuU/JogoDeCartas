@@ -15,8 +15,11 @@ public class CharacterSlotView : MonoBehaviour
     [SerializeField] Image hpFillImage;
     [SerializeField] TMP_Text hpLabel;
     [SerializeField] TMP_Text furyLabel;
+    [SerializeField] TMP_Text statusLabel;  // ZZZ, ESCUDO, TRISTE, CARGA, COMPRADO
     [SerializeField] Button button;         // o Button do objeto "Bg"
-    [SerializeField] Button infoButton;     // o botão (i)
+    [SerializeField] Button infoButton;     // botão (i)
+    [SerializeField] Button abilityButton;  // botão da habilidade ativa
+    [SerializeField] TMP_Text abilityLabel;
     [SerializeField] CanvasGroup group;
     [SerializeField] RectTransform floatAnchor;
 
@@ -32,6 +35,7 @@ public class CharacterSlotView : MonoBehaviour
 
     public event System.Action<CharacterSlotView> Clicked;
     public event System.Action<CharacterSlotView> InfoClicked;
+    public event System.Action<CharacterSlotView> AbilityClicked;
 
     Color baseArtColor;
 
@@ -39,6 +43,7 @@ public class CharacterSlotView : MonoBehaviour
     {
         button.onClick.AddListener(() => Clicked?.Invoke(this));
         infoButton.onClick.AddListener(() => InfoClicked?.Invoke(this));
+        abilityButton.onClick.AddListener(() => AbilityClicked?.Invoke(this));
     }
 
     void OnDestroy() => Unsubscribe();
@@ -48,6 +53,7 @@ public class CharacterSlotView : MonoBehaviour
         if (Character == null) return;
         Character.HealthChanged -= OnHealthChanged;
         Character.Defeated -= OnDefeated;
+        Character.StatusChanged -= OnStatusChanged;
     }
 
     public void Setup(CharacterRuntime c, int playerIndex)
@@ -59,6 +65,7 @@ public class CharacterSlotView : MonoBehaviour
         PlayerIndex = playerIndex;
         c.HealthChanged += OnHealthChanged;
         c.Defeated += OnDefeated;
+        c.StatusChanged += OnStatusChanged;
 
         nameLabel.text = c.data.cardName;
         background.color = PlayerPalette.CardBackground[playerIndex];
@@ -73,7 +80,9 @@ public class CharacterSlotView : MonoBehaviour
         button.interactable = true;
 
         SetHighlight(SlotHighlight.None);
+        SetAbilityButton(false, "", false);
         Refresh();
+        RefreshStatus();
     }
 
     public void SetHighlight(SlotHighlight h)
@@ -86,8 +95,19 @@ public class CharacterSlotView : MonoBehaviour
         }
     }
 
-    void OnHealthChanged(CharacterRuntime c) => Refresh();
+    // Mostra o botão da habilidade só na carta que está agindo
+    public void SetAbilityButton(bool visible, string label, bool interactable)
+    {
+        if (abilityButton.gameObject.activeSelf != visible)
+            abilityButton.gameObject.SetActive(visible);
+        if (!visible) return;
 
+        abilityLabel.text = label;
+        abilityButton.interactable = interactable;
+    }
+
+    void OnHealthChanged(CharacterRuntime c) => Refresh();
+    void OnStatusChanged(CharacterRuntime c) => RefreshStatus();
     void OnDefeated(CharacterRuntime c) => StartCoroutine(DefeatRoutine());
 
     // Só roda quando a vida muda (sem Update)
@@ -102,10 +122,14 @@ public class CharacterSlotView : MonoBehaviour
         hpFillImage.color = fury ? BarFury : BarNormal;
     }
 
+    void RefreshStatus() => statusLabel.text = Character.StatusText;
+
     IEnumerator DefeatRoutine()
     {
         button.interactable = false;
         SetHighlight(SlotHighlight.None);
+        SetAbilityButton(false, "", false);
+
         const float duration = 0.6f;
         float t = 0f;
         while (t < duration)

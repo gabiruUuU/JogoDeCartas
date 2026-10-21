@@ -39,7 +39,11 @@ public class DescriptionScreenController : MonoBehaviour
 
         nameLabel.text = c.cardName;
         statsLabel.text = $"Vida {c.health}   •   Dano {c.minDamage} a {c.maxDamage}";
-        storyLabel.text = c.story;
+
+        string ability = c.ability != AbilityType.None
+            ? $"<b>Habilidade - {c.AbilityName}</b>\n{c.AbilityDescription}\n\n"
+            : "";
+        storyLabel.text = ability + c.story;
 
         Canvas.ForceUpdateCanvases();
         scroll.verticalNormalizedPosition = 1f;      // sempre começa no topo
