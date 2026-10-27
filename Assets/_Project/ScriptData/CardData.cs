@@ -10,7 +10,9 @@ public enum AbilityType
     Buy,               // Rico: compra uma carta inimiga
     Sadden,            // Chorão: deixa os inimigos tristes
     SelfHeal,          // Lindo: se cura no começo da vez
-    Sleep              // Dorminhoco: dorme e se cura por inteiro
+    Sleep,             // Dorminhoco: dorme e se cura por inteiro
+    Inspire,           // Feliz: aumenta o dano da carta aliada
+    Fear               // Feio: inimigos com medo erram os ataques
 }
 
 [CreateAssetMenu(fileName = "Card_", menuName = "Batalha/Card Data")]
@@ -26,20 +28,21 @@ public class CardData : ScriptableObject
     [Header("Habilidade")]
     public AbilityType ability = AbilityType.None;
 
-    [Tooltip("Burro: chance de errar o ataque | Irritado: chance de dano dobrado | Chorão: chance de a carta inimiga não atacar")]
+    [Tooltip("Burro: chance de errar o ataque | Irritado: chance de dano dobrado | Chorão: chance de a carta inimiga não atacar | Feio: chance de os inimigos errarem por medo")]
     [Range(0f, 1f)] public float abilityChance = 0f;
 
-    [Tooltip("Fedido: redução do dano recebido (0,5 = 50%) | Lindo: cura máxima, com a vida quase zerada")]
+    [Tooltip("Fedido: redução do dano recebido (0,5 = 50%) | Lindo: cura máxima, com a vida quase zerada | Feliz: bônus de dano dado à aliada (0,5 = +50%)")]
     [Range(0f, 1f)] public float abilityAmount = 0f;
 
     [Tooltip("Lindo: cura mínima, com a vida cheia")]
     [Range(0f, 1f)] public float abilityAmountMin = 0f;
 
-    [Tooltip("Chato: máximo de acúmulos | Rico: recarga (em turnos da própria carta) | Dorminhoco: rodadas dormindo")]
+    [Tooltip("Chato: máximo de acúmulos | Rico e Feliz: recarga (em turnos da própria carta) | Dorminhoco: rodadas dormindo")]
     public int abilityTurns = 0;
 
     public bool HasActiveAbility =>
-        ability == AbilityType.Accumulate || ability == AbilityType.Buy || ability == AbilityType.Sleep;
+        ability == AbilityType.Accumulate || ability == AbilityType.Buy ||
+        ability == AbilityType.Sleep || ability == AbilityType.Inspire;
 
     public string AbilityName => ability switch
     {
@@ -51,6 +54,8 @@ public class CardData : ScriptableObject
         AbilityType.Sadden => "Tristeza",
         AbilityType.SelfHeal => "Beleza curativa",
         AbilityType.Sleep => "Soneca",
+        AbilityType.Inspire => "Inspirar",
+        AbilityType.Fear => "Medo",
         _ => "Nenhuma"
     };
 
@@ -72,6 +77,10 @@ public class CardData : ScriptableObject
             $"No começo da vez, se cura entre {Pct(abilityAmountMin)}% (vida cheia) e {Pct(abilityAmount)}% (vida quase zerada) da vida máxima.",
         AbilityType.Sleep =>
             $"Dorme e fica inativo por {abilityTurns} rodadas; ao acordar, recupera toda a vida.",
+        AbilityType.Inspire =>
+            $"Aumenta em {Pct(abilityAmount)}% o dano da carta aliada na próxima ação dela, sem gastar o próprio ataque. Pode usar a cada {abilityTurns} turnos dele.",
+        AbilityType.Fear =>
+            $"Enquanto estiver em campo, os inimigos ficam com medo: {Pct(abilityChance)}% de chance de errar os ataques (sorteio separado da esquiva, não soma com o Intelecto).",
         _ => "Sem habilidade especial."
     };
 

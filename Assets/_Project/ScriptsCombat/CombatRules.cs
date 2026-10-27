@@ -5,11 +5,13 @@ public struct AttackResult
     public CharacterRuntime attacker;
     public CharacterRuntime target;
     public bool dodged;
-    public bool missed;       // Burro errou o próprio ataque
+    public bool missed;       // o atacante errou (Burro ou medo)
+    public bool feared;       // errou por causa do medo (Feio)
     public bool critical;
     public bool furyActive;
     public bool doubled;      // Irritado: dano dobrado
     public bool shielded;     // alvo com escudo (Fedido)
+    public bool buffed;       // atacante inspirado pelo Feliz
     public int released;      // dano acumulado liberado neste ataque (Chato)
     public int damage;
     public bool targetDefeated;
@@ -98,6 +100,14 @@ public static class CombatRules
             return r;
         }
 
+        // Feio: atacante com medo erra (sorteio próprio, não soma com o Intelecto do alvo)
+        if (attacker.IsAfraid && Random.value < attacker.FearChance)
+        {
+            r.missed = true;
+            r.feared = true;
+            return r;
+        }
+
         // Intelecto do defensor tenta esquivar
         if (Random.value < DodgeChance(target.points))
         {
@@ -129,6 +139,13 @@ public static class CombatRules
         {
             r.doubled = true;
             dmg *= 2f;
+        }
+
+        // Feliz: bônus de dano dado à carta aliada
+        if (attacker.BuffActive)
+        {
+            r.buffed = true;
+            dmg *= attacker.DamageBuff;
         }
 
         // Penalidade de equilíbrio (primeiro turno de quem abre a batalha)

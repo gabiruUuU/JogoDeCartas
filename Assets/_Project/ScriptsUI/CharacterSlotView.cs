@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +7,11 @@ public enum SlotHighlight { None, Attacker, Target }
 
 public class CharacterSlotView : MonoBehaviour
 {
+    [Header("Visual (tudo que aparece na carta fica dentro deste objeto)")]
+    [SerializeField] RectTransform visual;
+    [SerializeField] CanvasGroup visualGroup;
+
+    [Header("Elementos")]
     [SerializeField] Image frame;
     [SerializeField] Image background;      // a Image do objeto "Bg"
     [SerializeField] Image art;
@@ -20,7 +25,7 @@ public class CharacterSlotView : MonoBehaviour
     [SerializeField] Button infoButton;     // botão (i)
     [SerializeField] Button abilityButton;  // botão da habilidade ativa
     [SerializeField] TMP_Text abilityLabel;
-    [SerializeField] CanvasGroup group;
+    [SerializeField] CanvasGroup group;     // CanvasGroup da raiz (bloqueia toques depois de morrer)
     [SerializeField] RectTransform floatAnchor;
 
     static readonly Color AttackerColor = new Color(0.30f, 1f, 0.40f);
@@ -32,6 +37,10 @@ public class CharacterSlotView : MonoBehaviour
     public CharacterRuntime Character { get; private set; }
     public int PlayerIndex { get; private set; }
     public RectTransform FloatAnchor => floatAnchor;
+    public RectTransform Visual => visual;
+    public CanvasGroup VisualGroup => visualGroup;
+    public Color BackgroundColor => PlayerPalette.CardBackground[PlayerIndex];
+    public Color ArtColor => baseArtColor;
 
     public event System.Action<CharacterSlotView> Clicked;
     public event System.Action<CharacterSlotView> InfoClicked;
@@ -58,7 +67,6 @@ public class CharacterSlotView : MonoBehaviour
 
     public void Setup(CharacterRuntime c, int playerIndex)
     {
-        StopAllCoroutines();
         Unsubscribe();
 
         Character = c;
@@ -68,21 +76,65 @@ public class CharacterSlotView : MonoBehaviour
         c.StatusChanged += OnStatusChanged;
 
         nameLabel.text = c.data.cardName;
-        background.color = PlayerPalette.CardBackground[playerIndex];
 
         art.preserveAspect = true;
         art.sprite = c.data.art;
         baseArtColor = c.data.art != null ? Color.white : new Color(0.5f, 0.55f, 0.65f);
 
+        ResetVisual();
         group.alpha = 1f;
         group.blocksRaycasts = true;
-        transform.localScale = Vector3.one;
         button.interactable = true;
 
         SetHighlight(SlotHighlight.None);
         SetAbilityButton(false, "", false);
         Refresh();
         RefreshStatus();
+    }
+
+    // ---------- Controle do visual (usado pelas animações) ----------
+    public void ResetVisual()
+    {
+        visual.DOKill();
+        visualGroup.DOKill();
+        background.DOKill();
+
+        visual.anchoredPosition = Vector2.zero;
+        visual.localRotation = Quaternion.identity;
+        visual.localScale = Vector3.one;
+        visualGroup.alpha = 1f;
+        background.color = PlayerPalette.CardBackground[PlayerIndex];
+    }
+
+    public void SetVisualPose(Vector2 offset, float zRotation, float scale, float alpha)
+    {
+        visual.anchoredPosition = offset;
+        visual.localRotation = Quaternion.Euler(0f, 0f, zRotation);
+        visual.localScale = Vector3.one * scale;
+        visualGroup.alpha = alpha;
+    }
+
+    public void SetVisualVisible(bool visible) => visualGroup.alpha = visible ? 1f : 0f;
+
+    // Pisca em branco ao ser atingida
+    public void Flash()
+    {
+        background.DOKill();
+        background.color = Color.white;
+        background.DOColor(PlayerPalette.CardBackground[PlayerIndex], 0.30f).SetEase(Ease.OutQuad);
+    }
+
+    public void BeginDefeat()
+    {
+        button.interactable = false;
+        SetHighlight(SlotHighlight.None);
+        SetAbilityButton(false, "", false);
+    }
+
+    public void EndDefeat()
+    {
+        visualGroup.alpha = 0f;
+        group.blocksRaycasts = false;
     }
 
     public void SetHighlight(SlotHighlight h)
@@ -108,7 +160,19 @@ public class CharacterSlotView : MonoBehaviour
 
     void OnHealthChanged(CharacterRuntime c) => Refresh();
     void OnStatusChanged(CharacterRuntime c) => RefreshStatus();
-    void OnDefeated(CharacterRuntime c) => StartCoroutine(DefeatRoutine());
+
+    void OnDefeated(CharacterRuntime c)
+    {
+        if (CardFx.Instance != null)
+        {
+            CardFx.Instance.PlayDeath(this);
+        }
+        else
+        {
+            BeginDefeat();
+            EndDefeat();
+        }
+    }
 
     // Só roda quando a vida muda (sem Update)
     void Refresh()
@@ -123,24 +187,4 @@ public class CharacterSlotView : MonoBehaviour
     }
 
     void RefreshStatus() => statusLabel.text = Character.StatusText;
-
-    IEnumerator DefeatRoutine()
-    {
-        button.interactable = false;
-        SetHighlight(SlotHighlight.None);
-        SetAbilityButton(false, "", false);
-
-        const float duration = 0.6f;
-        float t = 0f;
-        while (t < duration)
-        {
-            t += Time.deltaTime;
-            float k = Mathf.Clamp01(t / duration);
-            group.alpha = 1f - k;
-            transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.7f, k);
-            yield return null;
-        }
-        group.alpha = 0f;
-        group.blocksRaycasts = false;
-    }
 }

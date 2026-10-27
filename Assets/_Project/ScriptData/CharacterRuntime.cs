@@ -21,7 +21,13 @@ public class CharacterRuntime
     public bool SkipNextAction { get; set; }              // carta comprada pelo Rico
     public float SadSkipChance { get; set; }              // > 0 = triste (Chorão)
     public bool IsSad => SadSkipChance > 0f;
-    public int AbilityCooldownLeft { get; set; }          // Rico
+    public int AbilityCooldownLeft { get; set; }          // Rico e Feliz
+
+    public float FearChance { get; set; }                 // > 0 = com medo (Feio)
+    public bool IsAfraid => FearChance > 0f;
+    public bool BuffPending { get; set; }                 // Feliz: bônus vale na próxima ação
+    public bool BuffActive { get; set; }                  // bônus ativo na ação atual
+    public float DamageBuff { get; set; } = 1f;           // 1,5 = +50% de dano
 
     public event Action<CharacterRuntime> HealthChanged;
     public event Action<CharacterRuntime> Defeated;
@@ -85,6 +91,9 @@ public class CharacterRuntime
         AccumulatedStacks = 0;
         SleepTurnsLeft = 0;
         SkipNextAction = false;
+        BuffPending = false;
+        BuffActive = false;
+        DamageBuff = 1f;
         NotifyStatusChanged();
     }
 
@@ -98,7 +107,10 @@ public class CharacterRuntime
             if (IsAsleep) parts.Add("ZZZ");
             if (data.ability == AbilityType.Shield) parts.Add("ESCUDO");
             if (IsSad) parts.Add("TRISTE");
+            if (IsAfraid) parts.Add("MEDO");
             if (AccumulatedStacks > 0) parts.Add($"CARGA x{AccumulatedStacks}");
+            if (BuffPending || BuffActive)
+                parts.Add($"+{(int)Math.Round((DamageBuff - 1f) * 100f)}% DANO");
             if (SkipNextAction) parts.Add("COMPRADO");
             return string.Join("  ", parts);
         }

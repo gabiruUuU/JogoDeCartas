@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_9
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Dorminhoco
-  art: {fileID: 3199898737730842348, guid: 12c0cef6ad2dfea48bd09571f41540c2, type: 3}
+  art: {fileID: 882607520245031850, guid: f111818188413924c9141bb70ce764a9, type: 3}
   story: Um goblin sonolento, muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito

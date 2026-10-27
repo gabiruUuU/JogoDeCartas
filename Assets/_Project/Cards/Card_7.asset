@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_7
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Fedido
-  art: {fileID: 8863503682656203576, guid: 2e0f223e45ce70647a948b8943e6c54f, type: 3}
+  art: {fileID: 8736727572228291731, guid: 825fce451e598f446922660e62064df5, type: 3}
   story: "Um goblin intrag\xE1vel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito

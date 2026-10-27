@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_5
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Irritado
-  art: {fileID: -88541066748262059, guid: 18e3de6ea2458a345ab7103398e94db4, type: 3}
+  art: {fileID: -5431039192701434482, guid: c69685d152699f34dbc0de5ba15641e2, type: 3}
   story: Um goblin temperamental, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito

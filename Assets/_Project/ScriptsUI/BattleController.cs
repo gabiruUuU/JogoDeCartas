@@ -17,6 +17,7 @@ public class BattleController : MonoBehaviour
     [SerializeField] Button attackButton;
     [SerializeField] FloatingTextPool floatingTexts;
     [SerializeField] CardInfoPopup infoPopup;
+    [SerializeField] CardFx cardFx;
 
     [Header("Regras e registro")]
     [Tooltip("Desligado: quem abre a batalha é sorteado uma vez e os jogadores se alternam. Ligado: sorteia de novo a cada rodada.")]
@@ -50,6 +51,7 @@ public class BattleController : MonoBehaviour
     int attacksByCard;      // tentativas de ataque já feitas pela carta atual
     bool inputLocked;
     bool buyMode;           // Rico: escolhendo a carta a comprar
+    bool inspireUsedThisAction;   // Feliz: o Inspirar só vale uma vez por ação
 
     CharacterSlotView currentAttacker;
     CharacterSlotView selectedTarget;
@@ -79,8 +81,9 @@ public class BattleController : MonoBehaviour
     void Begin()
     {
         StopAllCoroutines();
+        cardFx.ResetAll();
         infoPopup.Hide();
-        inputLocked = false;
+        inputLocked = true;
         buyMode = false;
 
         var session = GameSession.Instance;
@@ -94,9 +97,48 @@ public class BattleController : MonoBehaviour
             logs[p].Clear();
         }
 
+        // Feio: o medo dura enquanto ele estiver em campo
+        foreach (var team in session.teams)
+            foreach (var c in team)
+                if (c.data.ability == AbilityType.Fear)
+                {
+                    c.Defeated -= OnFearSourceDefeated;
+                    c.Defeated += OnFearSourceDefeated;
+                }
+        RecalculateFear();
+
         UpdateLogs();
         roundNumber = 0;
         attackCount = 0;
+        StartCoroutine(BeginRoutine());
+    }
+
+    // Animação de abertura: as cartas saem do baralho (botão central) até a mão de cada jogador
+    IEnumerator BeginRoutine()
+    {
+        attackButton.interactable = false;
+        for (int p = 0; p < 2; p++)
+        {
+            statusLabels[p].text = "Distribuindo as cartas...";
+            statusLabels[p].color = StatusIdle;
+            teamPanels[p].color = PanelIdle;
+        }
+
+        // esconde as cartas e entrega intercalando os jogadores
+        var order = new List<CharacterSlotView>();
+        int max = Mathf.Max(slots[0].Count, slots[1].Count);
+        for (int i = 0; i < max; i++)
+        {
+            for (int p = 0; p < 2; p++)
+                if (i < slots[p].Count)
+                {
+                    slots[p][i].SetVisualVisible(false);
+                    order.Add(slots[p][i]);
+                }
+        }
+
+        yield return cardFx.PlayDealIn(order);
+
         starterPlayer = DrawStarter();
         BeginRound();
     }
@@ -123,6 +165,28 @@ public class BattleController : MonoBehaviour
                 foreach (var enemy in session.teams[1 - p])
                     enemy.SadSkipChance = Mathf.Max(enemy.SadSkipChance, c.data.abilityChance);
             }
+    }
+
+    void OnFearSourceDefeated(CharacterRuntime c) => RecalculateFear();
+
+    // Cada carta fica com medo se houver um Feio vivo no time inimigo
+    void RecalculateFear()
+    {
+        var teams = GameSession.Instance.teams;
+        for (int p = 0; p < GameSession.PlayersCount; p++)
+        {
+            float chance = 0f;
+            foreach (var source in teams[1 - p])
+                if (source.IsAlive && source.data.ability == AbilityType.Fear)
+                    chance = Mathf.Max(chance, source.data.abilityChance);
+
+            foreach (var c in teams[p])
+            {
+                if (Mathf.Approximately(c.FearChance, chance)) continue;
+                c.FearChance = chance;
+                c.NotifyStatusChanged();
+            }
+        }
     }
 
     // Sorteio do PDF: peso = soma das velocidades dos personagens vivos
@@ -158,6 +222,10 @@ public class BattleController : MonoBehaviour
     void AdvanceToNextCard()
     {
         var team = slots[turnPlayer];
+
+        // Termina a ação da carta anterior (o bônus do Feliz vale só para uma ação)
+        if (cardIndex >= 0 && cardIndex < team.Count) EndCardAction(team[cardIndex]);
+
         do { cardIndex++; }
         while (cardIndex < team.Count && !team[cardIndex].Character.IsAlive);
 
@@ -168,6 +236,16 @@ public class BattleController : MonoBehaviour
         }
 
         BeginCardAction();
+    }
+
+    static void EndCardAction(CharacterSlotView slot)
+    {
+        CharacterRuntime c = slot.Character;
+        if (!c.BuffActive) return;
+
+        c.BuffActive = false;
+        c.DamageBuff = 1f;
+        c.NotifyStatusChanged();
     }
 
     void EndPlayerTurn()
@@ -188,6 +266,7 @@ public class BattleController : MonoBehaviour
     {
         attacksByCard = 0;
         buyMode = false;
+        inspireUsedThisAction = false;
 
         CharacterSlotView slot = slots[turnPlayer][cardIndex];
         CharacterRuntime c = slot.Character;
@@ -238,6 +317,14 @@ public class BattleController : MonoBehaviour
                 floatingTexts.Show(slot.FloatAnchor, $"+{healed}", HealColor, 72);
                 PushLog($"{cardName} se curou em {healed}.");
             }
+        }
+
+        // Feliz: o bônus de dano recebido passa a valer nesta ação
+        if (c.BuffPending)
+        {
+            c.BuffPending = false;
+            c.BuffActive = true;
+            c.NotifyStatusChanged();
         }
 
         BeginAttackPrompt();
@@ -322,6 +409,14 @@ public class BattleController : MonoBehaviour
         return false;
     }
 
+    // Outra carta viva do mesmo time (a "carta aliada" do Feliz)
+    CharacterSlotView Ally(CharacterSlotView s)
+    {
+        foreach (var other in slots[s.PlayerIndex])
+            if (other != s && other.Character.IsAlive) return other;
+        return null;
+    }
+
     // ---------- Toques ----------
     void OnSlotClicked(CharacterSlotView slot)
     {
@@ -348,6 +443,7 @@ public class BattleController : MonoBehaviour
             case AbilityType.Accumulate: DoAccumulate(); break;
             case AbilityType.Sleep: DoSleep(); break;
             case AbilityType.Buy: ToggleBuyMode(); break;
+            case AbilityType.Inspire: DoInspire(); break;
         }
     }
 
@@ -360,8 +456,21 @@ public class BattleController : MonoBehaviour
             case AbilityType.Accumulate: return c.AccumulatedStacks < Mathf.Max(1, c.data.abilityTurns);
             case AbilityType.Sleep: return true;
             case AbilityType.Buy: return c.AbilityCooldownLeft <= 0 && HasBuyTarget();
+            case AbilityType.Inspire:
+                return !inspireUsedThisAction && c.AbilityCooldownLeft <= 0 && Ally(s) != null;
             default: return false;
         }
+    }
+
+    // Texto do botão da habilidade (mostra a recarga restante quando houver)
+    string AbilityButtonLabel(CharacterSlotView s)
+    {
+        if (buyMode) return "Cancelar";
+
+        CharacterRuntime c = s.Character;
+        string name = c.data.AbilityName;
+        bool hasCooldown = c.data.ability == AbilityType.Buy || c.data.ability == AbilityType.Inspire;
+        return hasCooldown && c.AbilityCooldownLeft > 0 ? $"{name} ({c.AbilityCooldownLeft})" : name;
     }
 
     // Rico só pode comprar uma carta acordada que tenha outra carta viva no próprio time para ser atacada
@@ -440,6 +549,27 @@ public class BattleController : MonoBehaviour
         StartCoroutine(AdvanceAfter(1.0f));
     }
 
+    // Feliz: dá +X% de dano à carta aliada na próxima ação dela. Não gasta o ataque do Feliz
+    void DoInspire()
+    {
+        CharacterSlotView slot = currentAttacker;
+        CharacterSlotView ally = Ally(slot);
+        if (ally == null || !CanUseAbility(slot)) return;
+
+        CharacterRuntime c = slot.Character;
+        inspireUsedThisAction = true;
+        c.AbilityCooldownLeft = Mathf.Max(1, c.data.abilityTurns);
+
+        ally.Character.DamageBuff = 1f + c.data.abilityAmount;     // não acumula: só renova o bônus
+        ally.Character.BuffPending = true;
+        ally.Character.NotifyStatusChanged();
+
+        int percent = Mathf.RoundToInt(c.data.abilityAmount * 100f);
+        floatingTexts.Show(ally.FloatAnchor, $"+{percent}% dano!", ExtraColor, 60);
+        PushLog($"{c.data.cardName} inspirou {ally.Character.data.cardName}: +{percent}% de dano na próxima ação.");
+        RefreshTurnUI();      // o botão fica indisponível (recarga) e o Feliz ainda ataca
+    }
+
     // Rico: compra a carta escolhida, que ataca uma carta do próprio time e perde a próxima ação
     void ExecuteBuy()
     {
@@ -452,7 +582,7 @@ public class BattleController : MonoBehaviour
         if (victim == null) return;
 
         inputLocked = true;
-        rico.Character.AbilityCooldownLeft = Mathf.Max(0, rico.Character.data.abilityTurns);
+        rico.Character.AbilityCooldownLeft = Mathf.Max(1, rico.Character.data.abilityTurns);
         bought.Character.SkipNextAction = true;
         bought.Character.NotifyStatusChanged();
 
@@ -460,12 +590,8 @@ public class BattleController : MonoBehaviour
         PushLog($"{rico.Character.data.cardName} comprou {bought.Character.data.cardName}, " +
                 $"que ataca {victim.Character.data.cardName}!");
 
-        float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
-        AttackResult r = CombatRules.Resolve(bought.Character, victim.Character, multiplier);
-        RegisterAttack(r, bought, victim);
-
         RefreshTurnUI();
-        StartCoroutine(AfterAttack(r, rico, false));
+        StartCoroutine(AttackRoutine(bought, victim, rico, false));
     }
 
     // ---------- Ataque ----------
@@ -480,15 +606,39 @@ public class BattleController : MonoBehaviour
         }
 
         inputLocked = true;
-        CharacterSlotView atk = currentAttacker;
-        CharacterSlotView tgt = selectedTarget;
-
-        float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
-        AttackResult r = CombatRules.Resolve(atk.Character, tgt.Character, multiplier);
-
-        RegisterAttack(r, atk, tgt);
         RefreshTurnUI();
-        StartCoroutine(AfterAttack(r, atk, true));
+        StartCoroutine(AttackRoutine(currentAttacker, selectedTarget, currentAttacker, true));
+    }
+
+    // atk: carta que se move e ataca | actor: carta que continua o fluxo depois (no Rico, é o próprio Rico)
+    IEnumerator AttackRoutine(CharacterSlotView atk, CharacterSlotView tgt, CharacterSlotView actor, bool allowExtra)
+    {
+        float multiplier = OpeningPenaltyActive ? CombatRules.FirstTurnDamageMultiplier : 1f;
+        AttackResult result = default;
+
+        // a carta voa até o alvo; o dano só é calculado no momento do impacto
+        yield return cardFx.PlayAttack(atk, tgt, () =>
+        {
+            result = CombatRules.Resolve(atk.Character, tgt.Character, multiplier);
+            RegisterAttack(result, atk, tgt);
+            return result;
+        });
+
+        yield return new WaitForSeconds(result.targetDefeated ? 0.8f : 0.2f);
+
+        bool p1Alive = TeamAlive(0);
+        bool p2Alive = TeamAlive(1);
+
+        if (!p1Alive || !p2Alive)                 // fim da partida
+        {
+            var session = GameSession.Instance;
+            session.Winner = p1Alive ? 0 : 1;
+            session.TurnsPlayed = attackCount;
+            ScreenManager.Instance.Show(ScreenId.Result);
+            yield break;
+        }
+
+        ContinueAfterAttempt(actor, allowExtra);
     }
 
     void RegisterAttack(AttackResult r, CharacterSlotView atk, CharacterSlotView tgt)
@@ -501,14 +651,17 @@ public class BattleController : MonoBehaviour
 
     void ShowFeedback(AttackResult r, CharacterSlotView atk, CharacterSlotView tgt)
     {
-        if (r.released > 0)
-            floatingTexts.Show(atk.FloatAnchor, $"Liberou {r.released}!", ExtraColor, 54);
-        else if (r.furyActive)
-            floatingTexts.Show(atk.FloatAnchor, "Fúria!", FuryColor, 54);
+        // Etiquetas sobre o atacante (podem aparecer juntas)
+        string tags = "";
+        if (r.released > 0) tags += $"Liberou {r.released}! ";
+        if (r.furyActive) tags += "Fúria! ";
+        if (r.buffed && !r.missed && !r.dodged) tags += "Inspirado! ";
+        if (tags.Length > 0)
+            floatingTexts.Show(atk.FloatAnchor, tags.TrimEnd(), ExtraColor, 50);
 
         if (r.missed)
         {
-            floatingTexts.Show(atk.FloatAnchor, "Errou!", MissColor, 72);
+            floatingTexts.Show(atk.FloatAnchor, r.feared ? "Medo! Errou" : "Errou!", MissColor, r.feared ? 60 : 72);
             return;
         }
         if (r.dodged)
@@ -532,13 +685,14 @@ public class BattleController : MonoBehaviour
         string t = r.target.data.cardName;
 
         string line;
-        if (r.missed) line = $"{a} errou o próprio ataque!";
+        if (r.missed) line = r.feared ? $"{a} está com medo e errou o ataque!" : $"{a} errou o próprio ataque!";
         else if (r.dodged) line = $"{a} atacou, mas {t} esquivou!";
         else if (r.doubled) line = $"{a} deu DANO DOBRADO em {t}: {r.damage}!";
         else if (r.critical) line = $"{a} deu CRÍTICO em {t}: {r.damage} de dano!";
         else line = $"{a} causou {r.damage} de dano em {t}.";
 
         if (r.released > 0 && !r.missed) line += $" (inclui {r.released} acumulado)";
+        if (r.buffed && !r.missed && !r.dodged) line += " (inspirado)";
         if (r.shielded && !r.missed && !r.dodged) line += " (escudo)";
         if (r.furyActive) line += " (fúria)";
         if (r.targetDefeated) line += $" {t} foi derrotado!";
@@ -566,25 +720,6 @@ public class BattleController : MonoBehaviour
     {
         for (int p = 0; p < 2; p++)
             logLabels[p].text = string.Join("\n", logs[p]);
-    }
-
-    IEnumerator AfterAttack(AttackResult r, CharacterSlotView atk, bool allowExtra)
-    {
-        yield return new WaitForSeconds(r.targetDefeated ? 1.1f : 0.9f);
-
-        bool p1Alive = TeamAlive(0);
-        bool p2Alive = TeamAlive(1);
-
-        if (!p1Alive || !p2Alive)                 // fim da partida
-        {
-            var session = GameSession.Instance;
-            session.Winner = p1Alive ? 0 : 1;
-            session.TurnsPlayed = attackCount;
-            ScreenManager.Instance.Show(ScreenId.Result);
-            yield break;
-        }
-
-        ContinueAfterAttempt(atk, allowExtra);
     }
 
     // ---------- Interface ----------
@@ -635,9 +770,7 @@ public class BattleController : MonoBehaviour
                                    && !inputLocked
                                    && s.Character.IsAlive
                                    && s.Character.data.HasActiveAbility;
-                s.SetAbilityButton(showAbility,
-                                   buyMode ? "Cancelar" : s.Character.data.AbilityName,
-                                   buyMode || CanUseAbility(s));
+                s.SetAbilityButton(showAbility, AbilityButtonLabel(s), buyMode || CanUseAbility(s));
             }
 
         bool targetOk = selectedTarget != null && (!buyMode || IsValidBuyTarget(selectedTarget));

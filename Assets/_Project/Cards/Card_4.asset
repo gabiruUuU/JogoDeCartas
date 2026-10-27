@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_4
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: "Golbin Chor\xE3o"
-  art: {fileID: -4081559892975129885, guid: 250729b570d9f714e8ee813121d1a05c, type: 3}
+  art: {fileID: -2730765657558115320, guid: 36188f2561208954ba0bbc6495dc9f50, type: 3}
   story: "um goblin sens\xEDvel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito

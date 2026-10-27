@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Card_6
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: Goblin Chato
-  art: {fileID: -5222889875473699838, guid: 910d527ce2ece8041a862d7c4042c98e, type: 3}
+  art: {fileID: -953606685522682141, guid: 66f8935b59d633447a3f6e421f8e6a9a, type: 3}
   story: "Um goblin insuport\xE1vel, muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
     muito muito muito muito muito muito muito muito muito muito muito muito muito
