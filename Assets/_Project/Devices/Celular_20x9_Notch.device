@@ -1,0 +1,36 @@
+{
+    "friendlyName": "Celular 20:9 com notch (custom)",
+    "version": 1,
+    "screens": [
+        {
+            "width": 1080,
+            "height": 2400,
+            "navigationBarHeight": 0,
+            "dpi": 420.0,
+            "orientations": [
+                {
+                    "orientation": 1,
+                    "safeArea": {
+                        "serializedVersion": "2",
+                        "x": 0.0,
+                        "y": 66.0,
+                        "width": 1080.0,
+                        "height": 2214.0
+                    },
+                    "cutouts": [
+                        {
+                            "serializedVersion": "2",
+                            "x": 340.0,
+                            "y": 2280.0,
+                            "width": 400.0,
+                            "height": 120.0
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "systemInfo": {
+        "operatingSystem": "Android"
+    }
+}
